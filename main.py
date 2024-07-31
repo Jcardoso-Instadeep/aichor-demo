@@ -1,4 +1,5 @@
 import argparse
+
 import time
 
 from src.operators.jax import jaxop
