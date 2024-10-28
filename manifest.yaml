@@ -12,9 +12,10 @@ spec:
   command: "python3 -u main.py --operator=jax --sleep=300 --tb-write=True"
 
   storage:
-    mountPoint: "/mnt/shared"
-    sizeGB: 16
-    storageClass: longhorn-xfs
+    sharedVolume:
+      mountPoint: "/mnt/shared"
+      sizeGB: 16
+      storageClass: longhorn-xfs
 
   tensorboard:
     enabled: true
