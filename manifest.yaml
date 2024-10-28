@@ -3,13 +3,13 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  dockerfile: ./build/ray.Dockerfile
+  dockerfile: ./build/Dockerfile
   context: .
 
 spec:
-  operator: kuberay
+  operator: pytorch
   image: image
-  command: "python3 -u main.py --operator=kuberay --sleep=300 --tb-write=True"
+  command: "python3 -u main.py --operator=pytorch --sleep=300 --tb-write=True"
 
   storage:
     sharedVolume:
@@ -17,22 +17,30 @@ spec:
       sizeGB: 16
       storageClass: longhorn-xfs
 
-  debug:
-    jupyter: false
-
   tensorboard:
     enabled: true
 
   types:
-    Head:
+    Master:
+      count: 1
       resources:
         cpus: 1
         ramRatio: 2
+        shmSizeGB: 0
+        accelerators: # optional
+          gpu:
+            count: 0
+            type: gpu
+            product: nvidia-tesla-t4
+    Worker:
+      count: 1
+      resources:
+        cpus: 1
+        ramRatio: 2
+        shmSizeGB: 0
+        accelerators: # optional
+          gpu:
+            count: 0
+            type: gpu
+            product: nvidia-tesla-t4
 
-    Workers:
-      - name: cpu-workers
-        count: 1
-        resources:
-          cpus: 1
-          ramRatio: 2
-          shmSizeGB: 0
