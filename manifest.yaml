@@ -15,7 +15,6 @@ spec:
     sharedVolume:
       mountPoint: "/mnt/shared"
       sizeGB: 16
-      storageClass: longhorn-xfs
 
   debug:
     jupyter: false
