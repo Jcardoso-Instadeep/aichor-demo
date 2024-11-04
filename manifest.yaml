@@ -9,12 +9,16 @@ builder:
 spec:
   operator: kuberay
   image: image
-  command: sleep infinity
+  command: "python3 -u main.py --operator=kuberay --sleep=300 --tb-write=True"
+
 
   storage:
     sharedVolume:
       mountPoint: "/mnt/shared"
       sizeGB: 16
+      storageClass: longhorn-xfs
+      accessMode: ReadWriteOnce
+
 
   debug:
     jupyter: false
