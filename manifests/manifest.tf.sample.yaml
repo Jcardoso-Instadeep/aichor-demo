@@ -16,6 +16,7 @@ spec:
       mountPoint: "/mnt/shared"
       sizeGB: 16
       storageClass: longhorn-xfs
+      accessMode: ReadWriteOnce
 
   tensorboard:
     enabled: true
