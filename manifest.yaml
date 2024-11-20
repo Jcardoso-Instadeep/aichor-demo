@@ -18,7 +18,7 @@ spec:
       storageClass: longhorn-xfs
       accessMode: ReadWriteOnce
     attachExistingPVCs: # optional, array
-      - name: "joao-pt2-pvc-81680a0349e34d1b-dsf-0a32fc8f5dc34438"
+      - name: "joao-test-fi-ab53c3dd41484ddc-testpvc-17a6daf05ed54821"
         mountPoint: "/mnt/my-60tib-dataset"
 
   debug:
