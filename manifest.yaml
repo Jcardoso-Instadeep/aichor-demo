@@ -12,11 +12,6 @@ spec:
   command: "python3 -u main.py --operator=kuberay --sleep=300 --tb-write=True"
 
   storage:
-    sharedVolume:
-      mountPoint: "/mnt/shared"
-      sizeGB: 16
-      storageClass: longhorn-xfs
-      accessMode: ReadWriteOnce
     attachExistingPVCs: # optional, array
       - name: "joao-test-fi-ab53c3dd41484ddc-testpvc-17a6daf05ed54821"
         mountPoint: "/mnt/my-60tib-dataset"
