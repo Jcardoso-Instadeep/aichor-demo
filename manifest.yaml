@@ -13,7 +13,7 @@ spec:
 
   storage:
     attachExistingPVCs: # optional, array
-      - name: "joao-test-fi-ab53c3dd41484ddc-test2-ca6385b33f024330"
+      - name: "joao-905-0f5da20716e0461e-joao-a-4f15093cb6be41ae"
         mountPoint: "/mnt/my-60tib-dataset"
 
   debug:
