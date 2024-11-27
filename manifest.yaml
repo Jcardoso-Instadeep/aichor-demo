@@ -16,6 +16,10 @@ spec:
   #     - name: "joao-905-0f5da20716e0461e-joao-a-4f15093cb6be41ae"
   #       mountPoint: "/mnt/my-60tib-dataset"
 
+  gracefulTermination:
+    shutdownCommand: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+    terminationGracePeriodSeconds: 100
+
   debug:
     jupyter: false
 
