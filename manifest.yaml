@@ -3,39 +3,28 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  dockerfile: ./build/ray.Dockerfile
+  dockerfile: ./build/Dockerfile
   context: .
 
 spec:
-  operator: kuberay
+  operator: tf
   image: image
-  command: "python3 -u main.py --operator=kuberay --sleep=600 --tb-write=True"
+  command: "python3 -u main.py --operator=tf --sleep=300 --tb-write=True"
 
   storage:
+    storage:
     attachExistingPVCs: # optional, array
       - name: "joao-gp2-45225e91fd8346df-joao-gp2-bc0a727ae0a3457f"
         mountPoint: "/mnt/my-60tib-dataset"
-
-  # gracefulTermination:
-  #   shutdownCommand: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
-  #   terminationGracePeriodSeconds: 100
-
-  debug:
-    jupyter: false
 
   tensorboard:
     enabled: true
 
   types:
-    Head:
+    Worker:
+      count: 1
       resources:
         cpus: 1
         ramRatio: 2
+        shmSizeGB: 0
 
-    Workers:
-      - name: cpu-workers
-        count: 1
-        resources:
-          cpus: 1
-          ramRatio: 2
-          shmSizeGB: 0

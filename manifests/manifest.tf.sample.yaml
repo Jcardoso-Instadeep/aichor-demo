@@ -12,11 +12,10 @@ spec:
   command: "python3 -u main.py --operator=tf --sleep=300 --tb-write=True"
 
   storage:
-    sharedVolume:
-      mountPoint: "/mnt/shared"
-      sizeGB: 16
-      # storageClass: longhorn-xfs
-      # accessMode: ReadWriteOnce
+    storage:
+    attachExistingPVCs: # optional, array
+      - name: "joao-gp2-45225e91fd8346df-joao-gp2-bc0a727ae0a3457f"
+        mountPoint: "/mnt/my-60tib-dataset"
 
   tensorboard:
     enabled: true
