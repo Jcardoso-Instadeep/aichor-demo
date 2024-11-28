@@ -17,7 +17,7 @@ spec:
         mountPoint: "/mnt/my-60tib-dataset"
 
   # gracefulTermination:
-  #   shutdownCommand: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+  #   shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' \'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' \-H 'accept: application/json'"]
   #   terminationGracePeriodSeconds: 100
 
   debug:
