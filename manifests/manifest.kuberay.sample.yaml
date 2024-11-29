@@ -11,14 +11,14 @@ spec:
   image: image
   command: "python3 -u main.py --operator=kuberay --sleep=600 --tb-write=True"
 
-  storage:
-    attachExistingPVCs: # optional, array
-      - name: "joao-gp2-45225e91fd8346df-joao-gp2-bc0a727ae0a3457f"
-        mountPoint: "/mnt/my-60tib-dataset"
+  # storage:
+  #   attachExistingPVCs: # optional, array
+  #     - name: "joao-gp2-45225e91fd8346df-joao-gp2-bc0a727ae0a3457f"
+  #       mountPoint: "/mnt/my-60tib-dataset"
 
-  # gracefulTermination:
-  #   shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' \'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' \-H 'accept: application/json'"]
-  #   terminationGracePeriodSeconds: 100
+  gracefulTermination:
+    shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
+    terminationGracePeriodSeconds: 100
 
   debug:
     jupyter: false

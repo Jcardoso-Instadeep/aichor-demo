@@ -3,13 +3,13 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  dockerfile: ./build/Dockerfile
+  dockerfile: ./build/ray.Dockerfile
   context: .
 
 spec:
-  operator: tf
+  operator: kuberay
   image: image
-  command: "python3 -u main.py --operator=tf --sleep=300 --tb-write=True"
+  command: "python3 -u main.py --operator=kuberay --sleep=600 --tb-write=True"
 
   # storage:
   #   attachExistingPVCs: # optional, array
@@ -20,14 +20,22 @@ spec:
     shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
     terminationGracePeriodSeconds: 100
 
+  debug:
+    jupyter: false
+
   tensorboard:
     enabled: true
 
   types:
-    Worker:
-      count: 1
+    Head:
       resources:
         cpus: 1
         ramRatio: 2
-        shmSizeGB: 0
 
+    Workers:
+      - name: cpu-workers
+        count: 2
+        resources:
+          cpus: 1
+          ramRatio: 2
+          shmSizeGB: 0
