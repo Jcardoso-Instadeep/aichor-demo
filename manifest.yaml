@@ -13,7 +13,7 @@ spec:
 
   storage:
     attachExistingPVCs: # optional, array
-      - name: "joao-stc-3e9567153ad14e7e-joao-multi-caf3f1e6ce9942c8"
+      - name: "joao-stc-3e9567153ad14e7e-joao-15gb-7b0006fc7ffe43ed"
         mountPoint: "/mnt/my-60tib-dataset"
 
   # gracefulTermination:
