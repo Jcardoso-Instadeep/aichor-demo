@@ -11,14 +11,20 @@ spec:
   image: image
   command: "python3 -u main.py --operator=kuberay --sleep=600 --tb-write=True"
 
-  storage:
-    attachExistingPVCs: # optional, array
-      - name: "joao-stc-3e9567153ad14e7e-joao-15gi-7b0006fc7ffe43ed"
-        mountPoint: "/mnt/my-60tib-dataset"
+  # storage:
+  #   sharedVolume:
+  #     mountPoint: "/mnt/shared"
+  #     sizeGB: 10
+  #     storageClass: standard-rwo
+  #     accessMode: ReadWriteOnce
 
-  # gracefulTermination:
-  #   shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
-  #   terminationGracePeriodSeconds: 100
+    # attachExistingPVCs: # optional, array
+    #   - name: "joao-stc-3e9567153ad14e7e-joao-15gi-7b0006fc7ffe43ed"
+    #     mountPoint: "/mnt/my-60tib-dataset"
+
+  gracefulTermination:
+    shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
+    terminationGracePeriodSeconds: 100
 
   debug:
     jupyter: false
