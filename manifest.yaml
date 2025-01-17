@@ -13,7 +13,7 @@ spec:
 
   gracefulTermination:
     shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
-    terminationGracePeriodSeconds: 100
+    terminationGracePeriodSeconds: 15
 
   # storage:
   #   sharedVolume:
