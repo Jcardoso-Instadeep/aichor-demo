@@ -3,45 +3,35 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  dockerfile: ./build/ray.Dockerfile
+  dockerfile: ./build/Dockerfile
   context: .
 
 spec:
-  operator: kuberay
+  operator: xgboost
   image: image
-  command: "python3 -u main.py --operator=kuberay --sleep=600 --tb-write=True"
+  command: "python3 -u main.py --operator=xgboost --sleep=900 --tb-write=True"
 
   # storage:
   #   sharedVolume:
   #     mountPoint: "/mnt/shared"
-  #     sizeGB: 10
-  #     storageClass: standard-rwo
-  #     accessMode: ReadWriteOnce
-
-    # attachExistingPVCs: # optional, array
-    #   - name: "joao-stc-3e9567153ad14e7e-joao-15gi-7b0006fc7ffe43ed"
-    #     mountPoint: "/mnt/my-60tib-dataset"
-
-  gracefulTermination:
-    shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
-    terminationGracePeriodSeconds: 100
-
-  debug:
-    jupyter: false
+  #     sizeGB: 16
+      # storageClass: longhorn-xfs
+      # accessMode: ReadWriteOnce
 
   tensorboard:
     enabled: true
 
   types:
-    Head:
+    Master:
+      count: 1
       resources:
         cpus: 1
         ramRatio: 2
+        shmSizeGB: 0
+    Worker:
+      count: 1
+      resources:
+        cpus: 1
+        ramRatio: 2
+        shmSizeGB: 0
 
-    Workers:
-      - name: cpu-workers
-        count: 2
-        resources:
-          cpus: 1
-          ramRatio: 2
-          shmSizeGB: 0
