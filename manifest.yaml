@@ -30,6 +30,6 @@ spec:
         shmSizeGB: 0
         accelerators: # optional
           gpu:
-            count: 0
+            count: 1
             type: gpu
             product: nvidia-tesla-t4
