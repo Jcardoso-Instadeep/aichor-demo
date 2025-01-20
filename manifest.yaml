@@ -13,7 +13,7 @@ spec:
 
   gracefulTermination:
     shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
-    terminationGracePeriodSeconds: 100
+    terminationGracePeriodSeconds: 15
 
   # storage:
   #   sharedVolume:
@@ -29,11 +29,11 @@ spec:
     Worker:
       count: 1
       resources:
-        cpus: 1
-        ramRatio: 4 
+        cpus: 3
+        ramRatio: 9
         shmSizeGB: 0
         accelerators: # optional
           gpu:
-            count: 0
+            count: 1
             type: gpu
             product: t4
