@@ -9,7 +9,7 @@ builder:
 spec:
   operator: jax
   image: image
-  command: "python3 -u main.py --operator=jax --sleep=1000 --tb-write=True"
+  command: "python3 -u main.py --operator=jax --sleep=2000 --tb-write=True"
 
   gracefulTermination:
     shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept: application/json'"]
