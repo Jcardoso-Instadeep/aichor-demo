@@ -1,4 +1,4 @@
-FROM python:3.9.9
+FROM python:3.9.9-alpine
 
 COPY build/requirements.txt .
 RUN pip install -r requirements.txt
