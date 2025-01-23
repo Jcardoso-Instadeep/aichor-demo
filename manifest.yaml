@@ -4,30 +4,21 @@ apiVersion: 0.2.2
 builder:
   image: image
   context: smoke-test # smoke-test folder
-  dockerfile: ./build/ray.Dockerfile # need ray installed
+  dockerfile: ./build/Dockerfile
 
 spec:
-  operator: kuberay
+  operator: jax
   image: image
-  command: "python3 -u main.py --operator=kuberay --sleep=20 --tb-write=True"
-
-  debug:
-    jupyter: false
+  command: "python3 -u main.py --operator=jax --sleep=20 --tb-write=True"
 
   tensorboard:
     enabled: true
 
   types:
-    Head:
+    Worker:
+      count: 1
       resources:
         cpus: 1
         ramRatio: 2
-
-    Workers:
-      - name: cpu-workers
-        count: 1
-        resources:
-          cpus: 1
-          ramRatio: 2
-          shmSizeGB: 0
+        shmSizeGB: 0
 
