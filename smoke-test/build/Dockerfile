@@ -1,4 +1,4 @@
-FROM python:3.9.9-slim
+FROM rayproject/ray:2.23.0-cpu
 
 COPY build/requirements.txt .
 RUN pip install -r requirements.txt
