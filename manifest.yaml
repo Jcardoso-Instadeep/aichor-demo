@@ -21,14 +21,10 @@ spec:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        extraSelectors: # optional 
-          karpenter.sh/capacity-type: spot
     Worker:
       count: 1
       resources:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        extraSelectors: # optional 
-          karpenter.sh/capacity-type: spot
 
