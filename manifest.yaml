@@ -7,11 +7,9 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: batchjob
+  operator: tf
   image: image
-  command: "python3 -u main.py --operator=batchjob --sleep=2000 --tb-write=True"
-  restartPolicy:
-    backoffLimit: 2
+  command: "python3 -u main.py --operator=tf --sleep=20 --tb-write=True"
 
   tensorboard:
     enabled: true
@@ -23,5 +21,11 @@ spec:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        extraSelectors: # optional 
-          karpenter.sh/capacity-type: spot
+
+
+
+
+
+
+        # extraSelectors: # optional 
+        #   karpenter.sh/capacity-type: spot
