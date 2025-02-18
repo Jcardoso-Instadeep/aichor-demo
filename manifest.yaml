@@ -21,6 +21,15 @@ spec:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
+        accelerators: # optional
+          gpu:
+            count: 1
+            type: gpu
+            product: t4
+            
+        # extraSelectors: # optional
+        #   karpenter.sh/capacity-type: spot
+
 
 
 
