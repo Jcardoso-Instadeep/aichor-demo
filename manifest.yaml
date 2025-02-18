@@ -27,8 +27,8 @@ spec:
             type: gpu
             product: t4
             
-        # extraSelectors: # optional
-        #   karpenter.sh/capacity-type: spot
+        extraSelectors: # optional
+          karpenter.sh/capacity-type: spot
 
 
 
