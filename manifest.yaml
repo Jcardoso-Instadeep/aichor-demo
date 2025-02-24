@@ -7,34 +7,24 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: tf
+  operator: xgboost
   image: image
-  command: "python3 -u main.py --operator=tf --sleep=20 --tb-write=True"
+  command: "python3 -u main.py --operator=xgboost --sleep=20 --tb-write=True"
 
   tensorboard:
     enabled: true
 
   types:
+    Master:
+      count: 1
+      resources:
+        cpus: 1
+        ramRatio: 2
+        shmSizeGB: 0
     Worker:
       count: 1
       resources:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        # accelerators: # optional
-        #   gpu:
-        #     count: 1
-        #     type: gpu
-        #     product: t4
-            
-        # extraSelectors: # optional
-        #   karpenter.sh/capacity-type: spot
 
-
-
-
-
-
-
-        # extraSelectors: # optional 
-        #   karpenter.sh/capacity-type: spot
