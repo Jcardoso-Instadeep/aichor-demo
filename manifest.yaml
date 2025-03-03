@@ -12,18 +12,14 @@ spec:
   image: image
   command: "python3 -u main.py --operator=tf --sleep=20 --tb-write=True"
   
-  storage: # optional
-    attachExistingPVCs: # optional, array
-      - name: "joao-reg-ef03d4784a5b4e2a-joao1-bf4d19860b8c42db"
-        mountPoint: "/mnt/my-60tib-dataset"
+  # storage: # optional
+  #   attachExistingPVCs: # optional, array
+  #     - name: "joao-reg-ef03d4784a5b4e2a-joao1-bf4d19860b8c42db"
+  #       mountPoint: "/mnt/my-60tib-dataset"
 
   tensorboard:
     enabled: true
   
-  gracefulTermination:
-    terminationGracePeriodSeconds: 50
-    shutdownCommand: ["/bin/sh", "-c", "curl -X 'GET' 'https://ms.dev.aichor.ai/1064-feat-test/api/v1/providers/kubernetes/ns/default/pods' -H 'accept:application/json'"]
-
   types:
     Worker:
       count: 1
