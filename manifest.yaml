@@ -1,4 +1,3 @@
-
 kind: AIchorManifest
 apiVersion: 0.2.2
 
@@ -8,18 +7,13 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: tf
+  operator: batchjob
   image: image
-  command: "python3 -u main.py --operator=tf --sleep=20 --tb-write=True"
-  
-  storage: # optional
-    attachExistingPVCs: # optional, array
-      - name: "joao-reg-ef03d4784a5b4e2a-joao1-bf4d19860b8c42db"
-        mountPoint: "/mnt/my-60tib-dataset"
+  command: "python3 -u main.py --operator=batchjob --sleep=20 --tb-write=True"
 
   tensorboard:
     enabled: true
-  
+
   types:
     Worker:
       count: 1
@@ -27,20 +21,4 @@ spec:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        # accelerators: # optional
-        #   gpu:
-        #     count: 1
-        #     type: gpu
-        #     product: t4
-            
-        # extraSelectors: # optional
-        #   karpenter.sh/capacity-type: spot
 
-
-
-
-
-
-
-        # extraSelectors: # optional 
-        #   karpenter.sh/capacity-type: spot
