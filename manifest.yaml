@@ -7,25 +7,14 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: xgboost
+  operator: batchjob
   image: image
-  command: "python3 -u main.py --operator=xgboost --sleep=20 --tb-write=True"
-
-  storage: # optional
-    attachExistingPVCs: # optional, array
-      - name: "joao-sam06-8a3a92d054014f5b-joao-a-b784253180564fbf"
-        mountPoint: "/mnt/my-60tib-dataset"
+  command: "python3 -u main.py --operator=batchjob --sleep=20 --tb-write=True"
 
   tensorboard:
     enabled: true
 
   types:
-    Master:
-      count: 1
-      resources:
-        cpus: 1
-        ramRatio: 2
-        shmSizeGB: 0
     Worker:
       count: 1
       resources:
