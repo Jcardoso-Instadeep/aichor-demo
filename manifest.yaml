@@ -9,7 +9,7 @@ builder:
 spec:
   operator: tf
   image: image
-  command: "python3 -u main.py --operator=tf --sleep=300 "
+  command: "python3 -u main.py --operator=tf --sleep=20 "
 
   types:
     Worker:
