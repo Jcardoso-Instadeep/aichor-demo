@@ -7,9 +7,12 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: tf
+  operator: batchjob
   image: image
-  command: "python3 -u main.py --operator=tf --sleep=20 "
+  command: "python3 -u main.py --operator=batchjob --sleep=20 --tb-write=True"
+
+  tensorboard:
+    enabled: true
 
   types:
     Worker:
@@ -18,9 +21,4 @@ spec:
         cpus: 1
         ramRatio: 2
         shmSizeGB: 0
-        accelerators: # optional
-          gpu:
-            count: 0
-            type: gpu
-            product: nvidia-tesla-t4
 
