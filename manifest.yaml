@@ -11,10 +11,10 @@ spec:
   image: image
   command: "python3 -u main.py --operator=xgboost --sleep=200"
 
-  storage: # optional
-    attachExistingPVCs: # optional, array
-      - name: "joao-ghub-a49922d38ba848d3-joao-azurecs-06f11537b058400a"
-        mountPoint: "/mnt/my-60tib-dataset"
+  # storage: # optional
+  #   attachExistingPVCs: # optional, array
+  #     - name: "joao-ghub-a49922d38ba848d3-joao-azurecs-06f11537b058400a"
+  #       mountPoint: "/mnt/my-60tib-dataset"
 
   tensorboard:
     enabled: false
