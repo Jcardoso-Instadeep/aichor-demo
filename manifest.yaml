@@ -9,7 +9,7 @@ builder:
 spec:
   operator: xgboost
   image: image
-  command: "python3 -u main.py --operator=xgboost --sleep=20 --tb-write=True"
+  command: "python3 -u main.py --operator=xgboost --sleep=20"
 
   # storage: # optional
   #   attachExistingPVCs: # optional, array
@@ -17,7 +17,7 @@ spec:
   #       mountPoint: "/mnt/my-60tib-dataset"
 
   tensorboard:
-    enabled: true
+    enabled: false
 
   types:
     Master:
