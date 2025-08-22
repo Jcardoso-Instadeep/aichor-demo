@@ -9,12 +9,12 @@ builder:
 spec:
   operator: xgboost
   image: image
-  command: "python3 -u main.py --operator=xgboost --sleep=20"
+  command: "python3 -u main.py --operator=xgboost --sleep=200"
 
-  # storage: # optional
-  #   attachExistingPVCs: # optional, array
-  #     - name: "joao-reg-ef03d4784a5b4e2a-joao1-bf4d19860b8c42db"
-  #       mountPoint: "/mnt/my-60tib-dataset"
+  storage: # optional
+    attachExistingPVCs: # optional, array
+      - name: "joao-ghub-a49922d38ba848d3-joao-pvc-8aebbf2eb6784519"
+        mountPoint: "/mnt/my-60tib-dataset"
 
   tensorboard:
     enabled: false
