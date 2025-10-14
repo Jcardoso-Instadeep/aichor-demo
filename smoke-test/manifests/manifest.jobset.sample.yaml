@@ -7,15 +7,21 @@ builder:
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: batchjob
+  operator: jobset
   image: image
-  command: "python3 -u main.py --operator=batchjob --sleep=300 --tb-write=True"
+  command: "python3 -u main.py --operator=jobset --sleep=300 --tb-write=True"
 
   tensorboard:
     enabled: true
 
   types:
-    Worker:
+    master:
+      count: 1
+      resources:
+        cpus: 1
+        ramRatio: 2
+        shmSizeGB: 0
+    worker:
       count: 1
       resources:
         cpus: 1
