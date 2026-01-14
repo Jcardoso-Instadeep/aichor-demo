@@ -3,33 +3,21 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  context: smoke-test # smoke-test folder
+  context: .
   dockerfile: ./build/Dockerfile
 
 spec:
-  operator: xgboost
+  operator: pytorch
   image: image
-  command: "python3 -u main.py --operator=xgboost --sleep=200"
-
-  # storage: # optional
-  #   attachExistingPVCs: # optional, array
-  #     - name: "joao-ghub-a49922d38ba848d3-joao-azurecs-06f11537b058400a"
-  #       mountPoint: "/mnt/my-60tib-dataset"
+  command: "python3 -u main.py --sleep=20 ; sleep 10"
 
   tensorboard:
-    enabled: false
+    enabled: true
 
   types:
-    Master:
+    worker: # worker MUST be written in a lower case w
       count: 1
       resources:
         cpus: 1
-        ramRatio: 2
+        ramRatio: 3
         shmSizeGB: 0
-    Worker:
-      count: 1
-      resources:
-        cpus: 1
-        ramRatio: 2
-        shmSizeGB: 0
-
