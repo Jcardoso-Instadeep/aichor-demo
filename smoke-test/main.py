@@ -26,9 +26,9 @@ def print_numbered_lines(target_mb=10):
     bytes_written = 0
     line_nr = 1
 
-    n = 1500
-    while bytes_written < target_bytes:
-    # while line_nr < n:
+    n = 50
+    # while bytes_written < target_bytes:
+    while line_nr < n:
         if line_nr % 3000 == 0:
             time.sleep(0.5)
         # Construct the string
