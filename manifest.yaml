@@ -16,6 +16,7 @@ spec:
   tensorboard:
     enabled: true
 
+
   types:
     master:
       count: 1
