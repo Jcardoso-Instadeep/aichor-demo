@@ -9,6 +9,7 @@ from src.operators.ray import rayop
 from src.operators.pytorch import pytorchop
 from src.operators.xgboost import xgboostop
 from src.operators.jobset import jobsetop
+from nn_pipeline import run_nn_pipeline
 import logging, sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -211,15 +212,25 @@ def autolog_demo(mlflow, base):
 
     mlflow.set_experiment(f"{base}-autolog")
     mlflow.sklearn.autolog()
-    X, y = make_classification(n_samples=500, n_features=10, random_state=42)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)
-    with mlflow.start_run(run_name="autolog-rf") as run:
-        mlflow.set_tag("demo", "autolog")
-        clf = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=0)
-        clf.fit(X_train, y_train)  # autolog records params + training metrics
-        clf.score(X_test, y_test)  # eval metrics are logged automatically too
-        logging.info(f"finished MLflow autolog-rf run_id={run.info.run_id}")
+    # One run per seed: the seed drives the dataset, the train/test split and
+    # the classifier, so each run trains a different model and the metrics
+    # genuinely differ -> something real to compare in the UI. flip_y adds
+    # label noise and n_informative < n_features makes the task non-trivial,
+    # so accuracy isn't pinned near 1.0.
+    for seed in (0, 1, 2):
+        X, y = make_classification(n_samples=500, n_features=10,
+                                   n_informative=5, flip_y=0.1,
+                                   random_state=seed)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=seed)
+        with mlflow.start_run(run_name=f"autolog-rf-seed{seed}") as run:
+            mlflow.set_tags({"demo": "autolog", "seed": seed})
+            clf = RandomForestClassifier(n_estimators=50, max_depth=5,
+                                         random_state=seed)
+            clf.fit(X_train, y_train)  # autolog records params + training metrics
+            clf.score(X_test, y_test)  # eval metrics are logged automatically too
+            logging.info(f"finished autolog seed={seed} "
+                         f"run_id={run.info.run_id}")
     mlflow.sklearn.autolog(disable=True)
 
 
@@ -230,6 +241,7 @@ def run_mlflow_demos():
     log_artifacts_demo(mlflow, base)
     log_nested_runs(mlflow, base)
     autolog_demo(mlflow, base)
+    run_nn_pipeline(mlflow, base)
 
 
 if __name__ == "__main__":

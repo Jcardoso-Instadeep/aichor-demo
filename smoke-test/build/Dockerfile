@@ -6,3 +6,4 @@ RUN pip install -r requirements.txt
 WORKDIR /app
 COPY ./src ./src
 COPY main.py .
+COPY nn_pipeline.py .
