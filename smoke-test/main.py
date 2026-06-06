@@ -12,8 +12,14 @@ from src.operators.jobset import jobsetop
 from nn_pipeline import run_nn_pipeline
 import logging, sys
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Silence the very chatty third-party libraries (boto3/GCS upload tracing,
+# urllib3 connection logs, matplotlib font manager, mlflow internals).
+for _noisy in ("botocore", "boto3", "s3transfer", "urllib3",
+               "matplotlib", "mlflow"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 
 OPERATOR_TABLE = {
@@ -51,7 +57,7 @@ def print_numbered_lines(target_mb=10):
 # the control-plane gateway rewrites the Host to the internal one (which the
 # server allows) and the client sends no Origin, so CORS does not apply.
 # Override with the MLFLOW_TRACKING_URI env var if needed.
-DEFAULT_MLFLOW_URI = "https://jcardoso-mlf-6a4401804a484db8-mlflow.dev.aichor.ai"
+DEFAULT_MLFLOW_URI = "https://jcardoso-t4-7dfc2abc90be4ef2-mlflow.dev.aichor.ai"
 
 
 def _init_mlflow():
