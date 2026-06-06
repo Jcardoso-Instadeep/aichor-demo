@@ -57,6 +57,12 @@ def _init_mlflow():
     """Point the MLflow client at the per-project tracking server and select
     the experiment. Returns the imported mlflow module so callers share one
     configured client."""
+    # boto3 >= 1.36 sends CRC32 request checksums that GCS's S3-interop
+    # endpoint rejects (SignatureDoesNotMatch). The manifest can't inject env
+    # (JobSet spec forbids it), so neutralise it here before boto3 is created.
+    os.environ.setdefault("AWS_REQUEST_CHECKSUM_CALCULATION", "when_required")
+    os.environ.setdefault("AWS_RESPONSE_CHECKSUM_VALIDATION", "when_required")
+
     import mlflow
 
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_MLFLOW_URI)
