@@ -54,9 +54,9 @@ DEFAULT_MLFLOW_URI = "https://jcardoso-mlf-6a4401804a484db8-mlflow.dev.aichor.ai
 
 
 def _init_mlflow():
-    """Point the MLflow client at the per-project tracking server and select
-    the experiment. Returns the imported mlflow module so callers share one
-    configured client."""
+    """Point the MLflow client at the per-project tracking server. Returns the
+    imported mlflow module and the base experiment name; each demo selects its
+    own sub-experiment so the runs table stays uncluttered."""
     # boto3 >= 1.36 sends CRC32 request checksums that GCS's S3-interop
     # endpoint rejects (SignatureDoesNotMatch). The manifest can't inject env
     # (JobSet spec forbids it), so neutralise it here before boto3 is created.
@@ -66,17 +66,17 @@ def _init_mlflow():
     import mlflow
 
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_MLFLOW_URI)
-    experiment = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test")
+    base = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test")
     mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment(experiment)
-    logging.info(f"MLflow tracking_uri={tracking_uri} experiment={experiment}")
-    return mlflow
+    logging.info(f"MLflow tracking_uri={tracking_uri} experiment_base={base}")
+    return mlflow, base
 
 
-def log_runs_to_mlflow(mlflow):
+def log_runs_to_mlflow(mlflow, base):
     """Log two runs (different learning rates) with metric curves, so MLflow
-    can chart and compare them. Tags are attached so the runs can be grouped
-    and filtered in the UI."""
+    can chart and compare them. Lives in its own experiment so the comparison
+    view holds only these two runs."""
+    mlflow.set_experiment(f"{base}-baseline")
     for lr in (0.1, 0.5):
         with mlflow.start_run(run_name=f"lr-{lr}") as run:
             # Tags: arbitrary key/value metadata. In the runs table you can add
@@ -99,7 +99,7 @@ def log_runs_to_mlflow(mlflow):
             logging.info(f"finished MLflow run lr={lr} run_id={run.info.run_id}")
 
 
-def log_artifacts_demo(mlflow):
+def log_artifacts_demo(mlflow, base):
     """Exercise the artifact store (GCS bucket): matplotlib figures, a confusion
     matrix, a JSON config, a text report, a CSV file and a logged table."""
     import matplotlib
@@ -107,6 +107,7 @@ def log_artifacts_demo(mlflow):
     import matplotlib.pyplot as plt
     import numpy as np
 
+    mlflow.set_experiment(f"{base}-artifacts")
     with mlflow.start_run(run_name="artifacts-demo") as run:
         mlflow.set_tag("demo", "artifacts")
 
@@ -166,10 +167,11 @@ def log_artifacts_demo(mlflow):
         logging.info(f"finished MLflow artifacts-demo run_id={run.info.run_id}")
 
 
-def log_nested_runs(mlflow):
+def log_nested_runs(mlflow, base):
     """A parent run with nested child runs -> a small hyper-parameter sweep.
     In the UI the children collapse under the parent; the best result is
     promoted onto the parent run."""
+    mlflow.set_experiment(f"{base}-sweep")
     with mlflow.start_run(run_name="hp-sweep") as parent:
         mlflow.set_tag("run_type", "parent")
         best = None  # (final_loss, lr, batch_size)
@@ -195,7 +197,7 @@ def log_nested_runs(mlflow):
                      f"run_id={parent.info.run_id}")
 
 
-def autolog_demo(mlflow):
+def autolog_demo(mlflow, base):
     """Let MLflow instrument the training itself. mlflow.sklearn.autolog()
     captures the estimator's params, training metrics and the fitted model
     (uploaded to the artifact store) with no explicit log_* calls."""
@@ -207,6 +209,7 @@ def autolog_demo(mlflow):
         logging.warning("scikit-learn not installed; skipping autolog demo")
         return
 
+    mlflow.set_experiment(f"{base}-autolog")
     mlflow.sklearn.autolog()
     X, y = make_classification(n_samples=500, n_features=10, random_state=42)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -222,11 +225,11 @@ def autolog_demo(mlflow):
 
 def run_mlflow_demos():
     """Run every MLflow tracking demo against the shared, configured client."""
-    mlflow = _init_mlflow()
-    log_runs_to_mlflow(mlflow)
-    log_artifacts_demo(mlflow)
-    log_nested_runs(mlflow)
-    autolog_demo(mlflow)
+    mlflow, base = _init_mlflow()
+    log_runs_to_mlflow(mlflow, base)
+    log_artifacts_demo(mlflow, base)
+    log_nested_runs(mlflow, base)
+    autolog_demo(mlflow, base)
 
 
 if __name__ == "__main__":
