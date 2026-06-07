@@ -147,6 +147,18 @@ def _log_confusion_matrix(mlflow, preds, targets, labels):
     plt.close(fig)
 
 
+def _model_signature(torch, model, sample_x, device):
+    """Infer an MLflow model signature (input/output schema) from a sample
+    batch, so the registered model shows its Inputs/Outputs. Returns
+    (signature, input_example_as_numpy)."""
+    from mlflow.models import infer_signature
+    model.eval()
+    with torch.no_grad():
+        out = model(sample_x.to(device)).cpu().numpy()
+    x_np = sample_x.cpu().numpy()
+    return infer_signature(x_np, out), x_np
+
+
 def run_nn_pipeline(mlflow, base, epochs=15, seed=0):
     """Train -> hyper-parameter search -> evaluation, all logged to MLflow."""
     try:
@@ -205,11 +217,7 @@ def run_nn_pipeline(mlflow, base, epochs=15, seed=0):
         mlflow.log_metric("test_accuracy", test_acc)
         _log_confusion_matrix(mlflow, preds, targets,
                               labels=["class 0", "class 1"])
-        # Serialize the trained model to the artifact store (GCS bucket).
-        try:
-            mlflow.pytorch.log_model(best_model, name="model")
-        except Exception as exc:  # noqa: BLE001 - artifact upload is best-effort
-            logging.warning(f"could not log pytorch model: {exc}")
+        # (Model logging happens only in the model-comparison experiment.)
         logging.info(f"NN eval test_acc={test_acc:.4f} test_loss={test_loss:.4f} "
                      f"run_id={run.info.run_id}")
 
@@ -355,10 +363,14 @@ def run_model_comparison(mlflow, base, epochs=35, seed=0):
                 mlflow.log_metric("test_loss", test_loss)
                 _log_confusion_matrix(mlflow, preds, targets, class_names)
 
-                # Register this architecture as a new version of one model.
+                # Register this architecture as a new version, with an inferred
+                # input/output schema.
                 try:
+                    sample_x = next(iter(test_loader))[0][:5]
+                    sig, input_example = _model_signature(torch, model, sample_x, device)
                     mlflow.pytorch.log_model(model, name="model",
-                                             registered_model_name=registered_name)
+                                             registered_model_name=registered_name,
+                                             signature=sig, input_example=input_example)
                 except Exception as exc:  # noqa: BLE001 - best-effort
                     logging.warning(f"could not log/register model {name}: {exc}")
 

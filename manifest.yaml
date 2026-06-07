@@ -21,7 +21,11 @@ spec:
     worker:
       count: 1
       resources:
-        cpus: 1
-        ramRatio: 2
+        cpus: 4
+        ramRatio: 4
         shmSizeGB: 0
+        accelerators:
+          gpu:
+            product: nvidia-tesla-t4
+            count: 1
 
