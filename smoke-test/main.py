@@ -73,7 +73,7 @@ def _init_mlflow():
     import mlflow
 
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_MLFLOW_URI)
-    base = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test-v4")
+    base = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test-v5")
     mlflow.set_tracking_uri(tracking_uri)
     logging.info(f"MLflow tracking_uri={tracking_uri} experiment_base={base}")
     return mlflow, base

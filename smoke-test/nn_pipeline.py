@@ -413,7 +413,7 @@ def run_model_comparison(mlflow, base, epochs=35, seed=0):
 # ---------------------------------------------------------------------------
 
 def _build_lineage_dataset(mlflow, np, name, source, n_features, ds_seed,
-                           n_samples=40000, noise=0.0):
+                           n_samples=150000, noise=0.0):
     """Generate a synthetic dataset and wrap it as an MLflow dataset for
     lineage. Distinct name/source/content -> a distinct digest in the UI."""
     rng = np.random.default_rng(ds_seed)
@@ -440,7 +440,7 @@ def _build_lineage_dataset(mlflow, np, name, source, n_features, ds_seed,
     return X, y, dataset
 
 
-def run_observability_demo(mlflow, base, seed=0, epochs=40):
+def run_observability_demo(mlflow, base, seed=0, epochs=30):
     """Two runs, each trained on a DIFFERENT dataset (recorded for lineage) with
     system-metrics logging on. The experiment's Datasets view then shows each
     run traced to its own dataset; each run's System metrics tab shows
@@ -468,9 +468,9 @@ def run_observability_demo(mlflow, base, seed=0, epochs=40):
     # Two distinct datasets -> two runs -> lineage differs per run.
     dataset_configs = [
         {"name": "synthetic-v1", "source": "synthetic://teacher-v1",
-         "n_features": 128, "ds_seed": 1, "noise": 0.0},
+         "n_features": 256, "ds_seed": 1, "noise": 0.0},
         {"name": "synthetic-v2", "source": "synthetic://teacher-v2",
-         "n_features": 256, "ds_seed": 2, "noise": 0.15},
+         "n_features": 512, "ds_seed": 2, "noise": 0.15},
     ]
 
     for cfg in dataset_configs:
@@ -478,7 +478,7 @@ def run_observability_demo(mlflow, base, seed=0, epochs=40):
         n_features = X.shape[1]
         Xt = torch.from_numpy(X).to(device)
         yt = torch.from_numpy(y).to(device)
-        model = _build_mlp(nn, n_features, [512, 512, 256], 2, dropout=0.1).to(device)
+        model = _build_mlp(nn, n_features, [1024, 1024, 512], 2, dropout=0.1).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
         # log_system_metrics=True -> MLflow samples CPU/GPU/memory in the background.
@@ -487,7 +487,7 @@ def run_observability_demo(mlflow, base, seed=0, epochs=40):
             mlflow.set_tags({"demo": "observability", "dataset": cfg["name"],
                              "device": str(device)})
             mlflow.log_params({"n_features": n_features,
-                               "hidden_dims": "[512, 512, 256]", "epochs": epochs})
+                               "hidden_dims": "[1024, 1024, 512]", "epochs": epochs})
             if dataset is not None:
                 mlflow.log_input(dataset, context="training")  # dataset lineage
 
