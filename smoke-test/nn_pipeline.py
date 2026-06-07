@@ -212,3 +212,181 @@ def run_nn_pipeline(mlflow, base, epochs=15, seed=0):
             logging.warning(f"could not log pytorch model: {exc}")
         logging.info(f"NN eval test_acc={test_acc:.4f} test_loss={test_loss:.4f} "
                      f"run_id={run.info.run_id}")
+
+
+# ---------------------------------------------------------------------------
+# Model-complexity comparison: small vs large MLP on a hard, nonlinear dataset.
+# ---------------------------------------------------------------------------
+
+def _build_mlp(nn, input_dim, hidden_dims, n_classes, dropout=0.0):
+    """A configurable MLP: input -> [hidden -> ReLU -> Dropout]* -> n_classes.
+    Pass hidden_dims=[16] for a tiny model or [256, 256, 128] for a deep one."""
+    layers = []
+    prev = input_dim
+    for h in hidden_dims:
+        layers += [nn.Linear(prev, h), nn.ReLU(), nn.Dropout(dropout)]
+        prev = h
+    layers.append(nn.Linear(prev, n_classes))
+    return nn.Sequential(*layers)
+
+
+def _build_teacher_dataset(torch, nn, seed, n_samples=20000, n_features=50,
+                           n_classes=5, batch_size=128, flip_frac=0.05):
+    """A deliberately hard dataset: a fixed, deep, random "teacher" network
+    assigns the labels, so the decision boundary is strongly nonlinear. A tiny
+    student MLP cannot match it (underfits); a larger one can -> the capacity
+    gap is visible by construction. Fully synthetic, no download."""
+    gen = torch.Generator().manual_seed(seed)
+    X = torch.randn(n_samples, n_features, generator=gen)
+
+    # Deep random teacher with tanh nonlinearities -> complex boundary.
+    teacher = nn.Sequential(
+        nn.Linear(n_features, 256), nn.Tanh(),
+        nn.Linear(256, 256), nn.Tanh(),
+        nn.Linear(256, 128), nn.Tanh(),
+        nn.Linear(128, n_classes),
+    )
+    with torch.no_grad():
+        for p in teacher.parameters():
+            # Deterministic init from the same generator (init.* has no generator arg).
+            p.copy_(torch.randn(p.shape, generator=gen) * 1.0)
+        y = teacher(X).argmax(dim=1)
+
+    # Inject label noise so neither model can reach 100% (a realistic ceiling).
+    n_flip = int(flip_frac * n_samples)
+    flip_idx = torch.randperm(n_samples, generator=gen)[:n_flip]
+    y[flip_idx] = torch.randint(0, n_classes, (n_flip,), generator=gen)
+
+    # Standardize features (already ~N(0,1), but keep it explicit/robust).
+    X = (X - X.mean(0)) / (X.std(0) + 1e-8)
+    X = X.float()
+
+    n_test = int(0.15 * n_samples)
+    n_val = int(0.15 * n_samples)
+    perm = torch.randperm(n_samples, generator=gen)
+    test_i, val_i, train_i = perm[:n_test], perm[n_test:n_test + n_val], perm[n_test + n_val:]
+
+    def loader(idx, shuffle):
+        ds = torch.utils.data.TensorDataset(X[idx], y[idx])
+        return torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=shuffle)
+
+    return (loader(train_i, True), loader(val_i, False), loader(test_i, False),
+            n_features, n_classes)
+
+
+def _train_and_log(torch, nn, mlflow, model, train_loader, val_loader,
+                   device, epochs, lr):
+    """Train a pre-built model, logging per-epoch curves to the active run.
+    Returns the best validation accuracy seen."""
+    import torch.nn.functional as F
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    best_val_acc = 0.0
+    for epoch in range(epochs):
+        model.train()
+        running, n_batches = 0.0, 0
+        for xb, yb in train_loader:
+            xb, yb = xb.to(device), yb.to(device)
+            optimizer.zero_grad()
+            loss = F.cross_entropy(model(xb), yb)
+            loss.backward()
+            optimizer.step()
+            running += loss.item()
+            n_batches += 1
+        train_loss = running / n_batches
+        val_loss, val_acc, _, _ = _evaluate(torch, model, val_loader, device)
+        mlflow.log_metric("train_loss", train_loss, step=epoch)
+        mlflow.log_metric("val_loss", val_loss, step=epoch)
+        mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+        best_val_acc = max(best_val_acc, val_acc)
+    return best_val_acc
+
+
+def run_model_comparison(mlflow, base, epochs=20, seed=0):
+    """Train a small and a large MLP on the same hard dataset, compare them, and
+    register both in the model registry with the winner aliased @champion."""
+    try:
+        import torch
+        import torch.nn as nn
+    except ImportError:
+        logging.warning("torch not installed; skipping model comparison")
+        return
+
+    torch.manual_seed(seed)
+    device = _pick_device(torch)
+    logging.info(f"model comparison using device={device}")
+
+    mlflow.set_experiment(f"{base}-model-comparison")
+    (train_loader, val_loader, test_loader,
+     input_dim, n_classes) = _build_teacher_dataset(torch, nn, seed)
+    class_names = [f"class {i}" for i in range(n_classes)]
+
+    # Two architectures of very different capacity, same training budget.
+    architectures = {
+        "small-mlp": {"hidden_dims": [16], "dropout": 0.0, "lr": 1e-3},
+        "large-mlp": {"hidden_dims": [256, 256, 128], "dropout": 0.2, "lr": 1e-3},
+    }
+    registered_name = "model-comparison-net"
+    results = {}
+
+    with mlflow.start_run(run_name="model-comparison") as parent:
+        mlflow.set_tags({"demo": "model-comparison", "device": str(device)})
+        mlflow.log_params({"input_dim": input_dim, "n_classes": n_classes,
+                           "epochs": epochs, "dataset": "deep-teacher-net"})
+
+        for name, cfg in architectures.items():
+            with mlflow.start_run(run_name=name, nested=True) as child:
+                mlflow.set_tags({"architecture": name, "device": str(device)})
+                model = _build_mlp(nn, input_dim, cfg["hidden_dims"],
+                                   n_classes, cfg["dropout"]).to(device)
+                n_params = sum(p.numel() for p in model.parameters())
+                mlflow.log_params({"hidden_dims": str(cfg["hidden_dims"]),
+                                   "dropout": cfg["dropout"], "lr": cfg["lr"],
+                                   "n_parameters": n_params})
+
+                best_val = _train_and_log(torch, nn, mlflow, model, train_loader,
+                                          val_loader, device, epochs, cfg["lr"])
+                test_loss, test_acc, preds, targets = _evaluate(
+                    torch, model, test_loader, device)
+                mlflow.log_metric("best_val_accuracy", best_val)
+                mlflow.log_metric("test_accuracy", test_acc)
+                mlflow.log_metric("test_loss", test_loss)
+                _log_confusion_matrix(mlflow, preds, targets, class_names)
+
+                # Register this architecture as a new version of one model.
+                try:
+                    mlflow.pytorch.log_model(model, name="model",
+                                             registered_model_name=registered_name)
+                except Exception as exc:  # noqa: BLE001 - best-effort
+                    logging.warning(f"could not log/register model {name}: {exc}")
+
+                results[name] = {"test_acc": test_acc, "n_params": n_params,
+                                 "run_id": child.info.run_id}
+                logging.info(f"{name}: params={n_params} test_acc={test_acc:.4f}")
+
+        # Summarize the comparison on the parent run.
+        winner = max(results, key=lambda k: results[k]["test_acc"])
+        gap = abs(results["large-mlp"]["test_acc"] - results["small-mlp"]["test_acc"])
+        mlflow.log_param("winner", winner)
+        mlflow.log_metric("winner_test_accuracy", results[winner]["test_acc"])
+        mlflow.log_metric("accuracy_gap", gap)
+        mlflow.log_dict(results, "comparison_summary.json")
+
+        # Point the @champion alias at the winning model version.
+        try:
+            from mlflow.tracking import MlflowClient
+            client = MlflowClient()
+            versions = client.search_model_versions(f"name='{registered_name}'")
+            win_run = results[winner]["run_id"]
+            win_version = next((mv.version for mv in versions
+                                if mv.run_id == win_run), None)
+            if win_version is not None:
+                client.set_registered_model_alias(
+                    registered_name, "champion", win_version)
+                logging.info(f"aliased {registered_name}@champion -> "
+                             f"v{win_version} ({winner})")
+        except Exception as exc:  # noqa: BLE001 - best-effort
+            logging.warning(f"could not set champion alias: {exc}")
+
+        logging.info(f"model comparison winner={winner} gap={gap:.4f} "
+                     f"run_id={parent.info.run_id}")

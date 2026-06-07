@@ -9,7 +9,7 @@ from src.operators.ray import rayop
 from src.operators.pytorch import pytorchop
 from src.operators.xgboost import xgboostop
 from src.operators.jobset import jobsetop
-from nn_pipeline import run_nn_pipeline
+from nn_pipeline import run_nn_pipeline, run_model_comparison
 import logging, sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -248,6 +248,7 @@ def run_mlflow_demos():
     log_nested_runs(mlflow, base)
     autolog_demo(mlflow, base)
     run_nn_pipeline(mlflow, base)
+    run_model_comparison(mlflow, base)
 
 
 if __name__ == "__main__":
