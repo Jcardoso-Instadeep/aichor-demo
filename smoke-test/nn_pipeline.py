@@ -414,8 +414,10 @@ def run_model_comparison(mlflow, base, epochs=35, seed=0):
 
 def _build_lineage_dataset(mlflow, np, name, source, n_features, ds_seed,
                            n_samples=150000, noise=0.0):
-    """Generate a synthetic dataset and wrap it as an MLflow dataset for
-    lineage. Distinct name/source/content -> a distinct digest in the UI."""
+    """Generate a dataset, upload the FULL arrays to `source` (an s3:// path on
+    the project inputs bucket, via the GCS-interop endpoint), and wrap it as an
+    MLflow dataset whose source is that real, reloadable location. Uses
+    from_numpy on the full data so the lineage reports the true row count."""
     rng = np.random.default_rng(ds_seed)
     X = rng.standard_normal((n_samples, n_features)).astype("float32")
     w = rng.standard_normal((n_features,)).astype("float32")
@@ -424,17 +426,29 @@ def _build_lineage_dataset(mlflow, np, name, source, n_features, ds_seed,
         score = score + rng.standard_normal(n_samples).astype("float32") * noise * score.std()
     y = (score > 0).astype("int64")
 
+    # Upload the dataset so the lineage source is a real, reloadable object.
+    # Credentials + GCS-interop endpoint are already in the pod env (same path
+    # MLflow uses for artifacts); the checksum env from _init_mlflow applies.
+    try:
+        import io
+        import os
+        import boto3
+        assert source.startswith("s3://")
+        bucket, key = source[len("s3://"):].split("/", 1)
+        buf = io.BytesIO()
+        np.savez(buf, X=X, y=y)
+        buf.seek(0)
+        endpoint = os.environ.get("MLFLOW_S3_ENDPOINT_URL")
+        s3 = boto3.client("s3", endpoint_url=endpoint) if endpoint else boto3.client("s3")
+        s3.upload_fileobj(buf, bucket, key)
+        logging.info(f"uploaded dataset {name} -> {source} "
+                     f"({n_samples} rows x {n_features} features)")
+    except Exception as exc:  # noqa: BLE001 - upload is best-effort
+        logging.warning(f"could not upload dataset {name} to {source}: {exc}")
+
     dataset = None
     try:
-        import pandas as pd
-        # A small sample carries the schema; lineage needs the descriptor, not all rows.
-        df = pd.DataFrame(X[:1000, :8], columns=[f"f{i}" for i in range(8)])
-        df["label"] = y[:1000]
-        try:
-            dataset = mlflow.data.from_pandas(df, source=source, name=name,
-                                              targets="label")
-        except Exception:
-            dataset = mlflow.data.from_pandas(df, name=name, targets="label")
+        dataset = mlflow.data.from_numpy(X, targets=y, source=source, name=name)
     except Exception as exc:  # noqa: BLE001 - lineage is best-effort
         logging.warning(f"could not build mlflow dataset {name}: {exc}")
     return X, y, dataset
@@ -465,16 +479,19 @@ def run_observability_demo(mlflow, base, seed=0, epochs=30):
     logging.info(f"observability demo using device={device}")
     mlflow.set_experiment(f"{base}-observability")
 
+    # Datasets are uploaded here so lineage points at a real, reloadable object.
+    # Defaults to the project's *inputs* bucket; override with DATASET_BUCKET.
+    bucket = os.environ.get("DATASET_BUCKET", "jcardoso-t4-7dfc2abc90be4ef2-inputs")
+
     # Two distinct datasets -> two runs -> lineage differs per run.
     dataset_configs = [
-        {"name": "synthetic-v1", "source": "synthetic://teacher-v1",
-         "n_features": 256, "ds_seed": 1, "noise": 0.0},
-        {"name": "synthetic-v2", "source": "synthetic://teacher-v2",
-         "n_features": 512, "ds_seed": 2, "noise": 0.15},
+        {"name": "synthetic-v1", "n_features": 256, "ds_seed": 1, "noise": 0.0},
+        {"name": "synthetic-v2", "n_features": 512, "ds_seed": 2, "noise": 0.15},
     ]
 
     for cfg in dataset_configs:
-        X, y, dataset = _build_lineage_dataset(mlflow, np, **cfg)
+        source_uri = f"s3://{bucket}/datasets/{cfg['name']}.npz"
+        X, y, dataset = _build_lineage_dataset(mlflow, np, source=source_uri, **cfg)
         n_features = X.shape[1]
         Xt = torch.from_numpy(X).to(device)
         yt = torch.from_numpy(y).to(device)
