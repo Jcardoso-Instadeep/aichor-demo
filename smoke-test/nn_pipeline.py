@@ -230,32 +230,32 @@ def _build_mlp(nn, input_dim, hidden_dims, n_classes, dropout=0.0):
     return nn.Sequential(*layers)
 
 
-def _build_teacher_dataset(torch, nn, seed, n_samples=20000, n_features=50,
-                           n_classes=5, batch_size=128, flip_frac=0.05):
-    """A deliberately hard dataset: a fixed, deep, random "teacher" network
-    assigns the labels, so the decision boundary is strongly nonlinear. A tiny
-    student MLP cannot match it (underfits); a larger one can -> the capacity
-    gap is visible by construction. Fully synthetic, no download."""
+def _build_teacher_dataset(torch, nn, seed, n_samples=24000, n_features=40,
+                           batch_size=128, flip_frac=0.02):
+    """A smooth-but-nonlinear binary task. A fixed shallow "teacher" with
+    normalized weights (so the boundary is learnable, not high-frequency noise)
+    produces a score; we threshold at its median for balanced labels. A large
+    MLP can fit this well; a tiny MLP underfits -> a clear, *noticeable*
+    accuracy gap. Fully synthetic, no download.
+
+    (An earlier version used a deep, large-weight teacher whose function was so
+    high-frequency that neither model could learn it -> both ~chance, tiny gap.)"""
+    n_classes = 2
     gen = torch.Generator().manual_seed(seed)
     X = torch.randn(n_samples, n_features, generator=gen)
 
-    # Deep random teacher with tanh nonlinearities -> complex boundary.
-    teacher = nn.Sequential(
-        nn.Linear(n_features, 256), nn.Tanh(),
-        nn.Linear(256, 256), nn.Tanh(),
-        nn.Linear(256, 128), nn.Tanh(),
-        nn.Linear(128, n_classes),
-    )
+    # Shallow smooth teacher: x -> tanh(x W1) W2, normalized init keeps it learnable.
+    hidden = 64
     with torch.no_grad():
-        for p in teacher.parameters():
-            # Deterministic init from the same generator (init.* has no generator arg).
-            p.copy_(torch.randn(p.shape, generator=gen) * 1.0)
-        y = teacher(X).argmax(dim=1)
+        W1 = torch.randn(n_features, hidden, generator=gen) / (n_features ** 0.5)
+        W2 = torch.randn(hidden, 1, generator=gen) / (hidden ** 0.5)
+        score = (torch.tanh(X @ W1) @ W2).squeeze(1)
+        y = (score > score.median()).long()  # balanced binary labels
 
-    # Inject label noise so neither model can reach 100% (a realistic ceiling).
+    # Flip a small fraction of labels so the ceiling is < 100% (realistic).
     n_flip = int(flip_frac * n_samples)
     flip_idx = torch.randperm(n_samples, generator=gen)[:n_flip]
-    y[flip_idx] = torch.randint(0, n_classes, (n_flip,), generator=gen)
+    y[flip_idx] = 1 - y[flip_idx]
 
     # Standardize features (already ~N(0,1), but keep it explicit/robust).
     X = (X - X.mean(0)) / (X.std(0) + 1e-8)
@@ -302,7 +302,7 @@ def _train_and_log(torch, nn, mlflow, model, train_loader, val_loader,
     return best_val_acc
 
 
-def run_model_comparison(mlflow, base, epochs=20, seed=0):
+def run_model_comparison(mlflow, base, epochs=35, seed=0):
     """Train a small and a large MLP on the same hard dataset, compare them, and
     register both in the model registry with the winner aliased @champion."""
     try:
@@ -323,8 +323,10 @@ def run_model_comparison(mlflow, base, epochs=20, seed=0):
 
     # Two architectures of very different capacity, same training budget.
     architectures = {
-        "small-mlp": {"hidden_dims": [16], "dropout": 0.0, "lr": 1e-3},
-        "large-mlp": {"hidden_dims": [256, 256, 128], "dropout": 0.2, "lr": 1e-3},
+        # Deliberately under-powered: 4 hidden units can't capture the boundary.
+        "small-mlp": {"hidden_dims": [4], "dropout": 0.0, "lr": 1e-3},
+        # Ample capacity to fit the smooth nonlinear teacher.
+        "large-mlp": {"hidden_dims": [256, 256, 128], "dropout": 0.1, "lr": 1e-3},
     }
     registered_name = "model-comparison-net"
     results = {}
