@@ -404,3 +404,105 @@ def run_model_comparison(mlflow, base, epochs=35, seed=0):
 
         logging.info(f"model comparison winner={winner} gap={gap:.4f} "
                      f"run_id={parent.info.run_id}")
+
+
+# ---------------------------------------------------------------------------
+# Observability demo: (1) system metrics (CPU/GPU/mem sampled during the run)
+# and (2) dataset lineage -> two runs trained on two DIFFERENT datasets, each
+# recorded, so the experiment's Datasets view traces each run to its own data.
+# ---------------------------------------------------------------------------
+
+def _build_lineage_dataset(mlflow, np, name, source, n_features, ds_seed,
+                           n_samples=40000, noise=0.0):
+    """Generate a synthetic dataset and wrap it as an MLflow dataset for
+    lineage. Distinct name/source/content -> a distinct digest in the UI."""
+    rng = np.random.default_rng(ds_seed)
+    X = rng.standard_normal((n_samples, n_features)).astype("float32")
+    w = rng.standard_normal((n_features,)).astype("float32")
+    score = X @ w
+    if noise:
+        score = score + rng.standard_normal(n_samples).astype("float32") * noise * score.std()
+    y = (score > 0).astype("int64")
+
+    dataset = None
+    try:
+        import pandas as pd
+        # A small sample carries the schema; lineage needs the descriptor, not all rows.
+        df = pd.DataFrame(X[:1000, :8], columns=[f"f{i}" for i in range(8)])
+        df["label"] = y[:1000]
+        try:
+            dataset = mlflow.data.from_pandas(df, source=source, name=name,
+                                              targets="label")
+        except Exception:
+            dataset = mlflow.data.from_pandas(df, name=name, targets="label")
+    except Exception as exc:  # noqa: BLE001 - lineage is best-effort
+        logging.warning(f"could not build mlflow dataset {name}: {exc}")
+    return X, y, dataset
+
+
+def run_observability_demo(mlflow, base, seed=0, epochs=40):
+    """Two runs, each trained on a DIFFERENT dataset (recorded for lineage) with
+    system-metrics logging on. The experiment's Datasets view then shows each
+    run traced to its own dataset; each run's System metrics tab shows
+    CPU/GPU/memory curves."""
+    try:
+        import torch
+        import torch.nn as nn
+        import torch.nn.functional as F
+    except ImportError:
+        logging.warning("torch not installed; skipping observability demo")
+        return
+    import os
+    import numpy as np
+
+    # Sample frequently so even a short run captures several points
+    # (default interval is 10s; each run is tens of seconds).
+    os.environ.setdefault("MLFLOW_SYSTEM_METRICS_SAMPLING_INTERVAL", "2")
+    os.environ.setdefault("MLFLOW_SYSTEM_METRICS_SAMPLES_BEFORE_LOGGING", "1")
+
+    torch.manual_seed(seed)
+    device = _pick_device(torch)
+    logging.info(f"observability demo using device={device}")
+    mlflow.set_experiment(f"{base}-observability")
+
+    # Two distinct datasets -> two runs -> lineage differs per run.
+    dataset_configs = [
+        {"name": "synthetic-v1", "source": "synthetic://teacher-v1",
+         "n_features": 128, "ds_seed": 1, "noise": 0.0},
+        {"name": "synthetic-v2", "source": "synthetic://teacher-v2",
+         "n_features": 256, "ds_seed": 2, "noise": 0.15},
+    ]
+
+    for cfg in dataset_configs:
+        X, y, dataset = _build_lineage_dataset(mlflow, np, **cfg)
+        n_features = X.shape[1]
+        Xt = torch.from_numpy(X).to(device)
+        yt = torch.from_numpy(y).to(device)
+        model = _build_mlp(nn, n_features, [512, 512, 256], 2, dropout=0.1).to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+        # log_system_metrics=True -> MLflow samples CPU/GPU/memory in the background.
+        with mlflow.start_run(run_name=f"train-{cfg['name']}",
+                              log_system_metrics=True) as run:
+            mlflow.set_tags({"demo": "observability", "dataset": cfg["name"],
+                             "device": str(device)})
+            mlflow.log_params({"n_features": n_features,
+                               "hidden_dims": "[512, 512, 256]", "epochs": epochs})
+            if dataset is not None:
+                mlflow.log_input(dataset, context="training")  # dataset lineage
+
+            batch = 2048
+            n_batches = X.shape[0] // batch
+            for epoch in range(epochs):
+                perm = torch.randperm(X.shape[0], device=device)
+                running = 0.0
+                for i in range(n_batches):
+                    idx = perm[i * batch:(i + 1) * batch]
+                    optimizer.zero_grad()
+                    loss = F.cross_entropy(model(Xt[idx]), yt[idx])
+                    loss.backward()
+                    optimizer.step()
+                    running += loss.item()
+                mlflow.log_metric("train_loss", running / n_batches, step=epoch)
+            logging.info(f"observability run dataset={cfg['name']} "
+                         f"run_id={run.info.run_id}")

@@ -9,7 +9,7 @@ from src.operators.ray import rayop
 from src.operators.pytorch import pytorchop
 from src.operators.xgboost import xgboostop
 from src.operators.jobset import jobsetop
-from nn_pipeline import run_nn_pipeline, run_model_comparison
+from nn_pipeline import run_nn_pipeline, run_model_comparison, run_observability_demo
 import logging, sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -73,7 +73,7 @@ def _init_mlflow():
     import mlflow
 
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_MLFLOW_URI)
-    base = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test-v3")
+    base = os.environ.get("MLFLOW_EXPERIMENT_NAME", "smoke-test-v4")
     mlflow.set_tracking_uri(tracking_uri)
     logging.info(f"MLflow tracking_uri={tracking_uri} experiment_base={base}")
     return mlflow, base
@@ -249,6 +249,7 @@ def run_mlflow_demos():
     autolog_demo(mlflow, base)
     run_nn_pipeline(mlflow, base)
     run_model_comparison(mlflow, base)
+    run_observability_demo(mlflow, base)
 
 
 if __name__ == "__main__":
