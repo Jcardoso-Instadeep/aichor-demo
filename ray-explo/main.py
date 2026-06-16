@@ -3,13 +3,13 @@ import math
 import os
 import random
 import time
+from time import sleep
 
 from src.operators.jax import jaxop
 from src.operators.ray import rayop
 from src.operators.pytorch import pytorchop
 from src.operators.xgboost import xgboostop
 from src.operators.jobset import jobsetop
-from nn_pipeline import run_nn_pipeline, run_model_comparison, run_observability_demo
 import logging, sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -67,6 +67,8 @@ if __name__ == "__main__":
     OPERATOR_TABLE[args.operator](args.tb_write)
 
     print_numbered_lines(5)
+
+    sleep(2000000000000)
 
     if args.sleep > 0:
         print(f"sleeping for {args.sleep}s before exiting")
