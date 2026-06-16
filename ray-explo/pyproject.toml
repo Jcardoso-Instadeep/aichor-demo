@@ -15,6 +15,12 @@ dependencies = [
     "nvidia-ml-py==13.610.43",  # GPU system metrics (pynvml)
 ]
 
+[project.optional-dependencies]
+# The rayproject/ray base image (build/ray.Dockerfile) ships ray + numpy but
+# no torch, so it installs this extra. The pytorch base (build/Dockerfile)
+# already bundles torch and installs the bare dependencies above instead.
+torch = ["torch==2.5.1"]
+
 # main.py / nn_pipeline.py are plain scripts, not an installable package.
 [tool.uv]
 package = false
