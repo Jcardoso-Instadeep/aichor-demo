@@ -5,7 +5,7 @@ apiVersion: 0.2.2
 
 builder:
   image: image
-  context: ray-explo # smoke-test folder
+  context: smoke-test # smoke-test folder
   dockerfile: ./build/ray.Dockerfile # need ray installed
 
 spec:
