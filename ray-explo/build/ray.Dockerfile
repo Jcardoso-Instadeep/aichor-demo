@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.7
-FROM rayproject/ray:2.23.0-cpu
+# Python 3.12 image (the pyproject pins require >=3.12). 2.51.1 matches the Ray
+# version used elsewhere in the ecosystem and is supported by KubeRay v1.5.0.
+FROM rayproject/ray:2.51.1-py312-cpu
 
 # uv: fast installer (static binary from the official image).
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
