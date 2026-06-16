@@ -8,7 +8,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # numpy but no torch) into the image's python. Cache-mount uv's store so repeat
 # builds reuse downloaded wheels; bind-mount pyproject so it isn't baked into a
 # layer.
-RUN --mount=type=cache,target=/home/ray/.cache/uv \
+# The ray base runs as the non-root `ray` user (uid 1000, gid 100); the cache
+# mount must be owned by it or uv can't write CACHEDIR.TAG.
+RUN --mount=type=cache,target=/home/ray/.cache/uv,uid=1000,gid=100 \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv pip install --system --extra torch -r pyproject.toml
 
