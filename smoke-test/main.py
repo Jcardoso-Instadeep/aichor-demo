@@ -263,7 +263,7 @@ if __name__ == "__main__":
     print(f"using {args.operator} operator")
     OPERATOR_TABLE[args.operator](args.tb_write)
 
-    run_mlflow_demos()
+    # run_mlflow_demos()
 
     print_numbered_lines(5)
 
