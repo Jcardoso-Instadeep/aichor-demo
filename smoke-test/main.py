@@ -9,6 +9,7 @@ from src.operators.ray import rayop
 from src.operators.pytorch import pytorchop
 from src.operators.xgboost import xgboostop
 from src.operators.jobset import jobsetop
+from metrics_test.load import generate_metrics
 from nn_pipeline import run_nn_pipeline, run_model_comparison, run_observability_demo
 import logging, sys
 
@@ -257,6 +258,13 @@ if __name__ == "__main__":
     parser.add_argument("--operator", type=str, default="jobset", choices=OPERATOR_TABLE.keys(),help="operator name")
     parser.add_argument("--sleep", type=int, default="0", help="sleep time in seconds")
     parser.add_argument("--tb-write", type=bool, default=False, help="test write to tensorboard")
+    # How long to drive CPU/memory/disk/GPU load so the experiment emits real
+    # infrastructure metrics (visible in Ygritte / the experiments page). Defaults
+    # to 300s so a run "for sure" produces a signal across several scrape intervals;
+    # set 0 to disable. Env METRICS_TEST_SECONDS overrides the flag.
+    parser.add_argument("--metrics-seconds", type=int,
+                        default=int(os.environ.get("METRICS_TEST_SECONDS", "300")),
+                        help="seconds of CPU/mem/disk/GPU load to generate (0 = off)")
 
     args = parser.parse_args()
 
@@ -266,6 +274,11 @@ if __name__ == "__main__":
     # run_mlflow_demos()
 
     print_numbered_lines(5)
+
+    # Generate real infrastructure load so the metrics pipeline has something to
+    # scrape (see metrics_test/). Runs in each pod that executes main.py.
+    if args.metrics_seconds > 0:
+        generate_metrics(duration_s=args.metrics_seconds, gpu=False)
 
     if args.sleep > 0:
         print(f"sleeping for {args.sleep}s before exiting")
