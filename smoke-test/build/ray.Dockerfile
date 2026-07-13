@@ -5,4 +5,5 @@ RUN pip install -r requirements.txt
 
 WORKDIR /app
 COPY ./src ./src
+COPY ./metrics_test ./metrics_test
 COPY main.py .

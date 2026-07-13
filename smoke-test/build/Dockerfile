@@ -21,5 +21,6 @@ WORKDIR /app
 # Code last, as thin layers: editing these doesn't touch the big torch/extras
 # layers, so rebuilds only re-export these.
 COPY ./src ./src
+COPY ./metrics_test ./metrics_test
 COPY main.py .
 COPY nn_pipeline.py .
