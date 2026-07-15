@@ -277,8 +277,8 @@ if __name__ == "__main__":
 
     # Generate real infrastructure load so the metrics pipeline has something to
     # scrape (see metrics_test/). Runs in each pod that executes main.py.
-    if args.metrics_seconds > 0:
-        generate_metrics(duration_s=args.metrics_seconds, gpu=False)
+    # if args.metrics_seconds > 0:
+    #     generate_metrics(duration_s=args.metrics_seconds, gpu=False)
 
     if args.sleep > 0:
         print(f"sleeping for {args.sleep}s before exiting")
